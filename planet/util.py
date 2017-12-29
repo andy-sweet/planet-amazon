@@ -65,3 +65,46 @@ def count_tags(tags):
             else:
                 counts[tag] = 1
     return counts
+
+
+def get_tag_indices(tags):
+    """ Associate an index with a set of tags.
+
+    Arguments
+    ---------
+    tags : dict
+        Maps sample name to tags.
+
+    Returns
+    -------
+    tag_indices : dict
+        Maps tag name to an index in the output matrix.
+    """
+    tag_counts = count_tags(tags);
+    tag_names = tag_counts.keys()
+    return {name : index for (index, name) in enumerate(tag_names)}
+
+
+def tags_to_labels(tags, tag_indices):
+    """ Converts dictionary of tags to matrix of binary labels.
+
+    Arguments
+    ---------
+    tags : dict
+        Maps sample name to tags.
+    tag_indices : dict
+        Maps tag name to an index in the output matrix.
+
+    Returns
+    -------
+    labels : :class:`numpy.ndarray`, (N, K), bool
+        The matrix of labels.
+    """
+    num_samples = len(tags)
+    num_labels = len(tag_indices)
+
+    labels = np.zeros((num_samples, num_labels), dtype=bool)
+    for sample_index, sample_name in enumerate(tags.keys()):
+        for tag in tags[sample_name]:
+            labels[sample_index, tag_indices[tag]] = 1
+    return labels
