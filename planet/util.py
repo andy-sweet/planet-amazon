@@ -13,15 +13,10 @@ K : The number of labels.
 """
 
 # Built-in
-import os, csv
+import csv
 
 # Third party
-import numpy as np
-import skimage.io
-
-# Some module constants related to data paths
-default_data_dir = os.path.join(os.path.dirname(__file__), "..", "data")
-
+import numpy
 
 def read_tags(csv_path):
     """ Read tags from a CSV file into a map.
@@ -37,10 +32,10 @@ def read_tags(csv_path):
         Maps sample name to a vector of tags.
     """
     tags = {}
-    with open(csv_path,"r") as csv_file:
+    with open(csv_path, 'r') as csv_file:
         reader = csv.DictReader(csv_file)
         for row in reader:
-            tags[row["image_name"]] = row["tags"].split()
+            tags[row['image_name']] = row['tags'].split()
     return tags
 
 
@@ -103,7 +98,7 @@ def tags_to_labels(tags, tag_indices):
     num_samples = len(tags)
     num_labels = len(tag_indices)
 
-    labels = np.zeros((num_samples, num_labels), dtype=bool)
+    labels = numpy.zeros((num_samples, num_labels), dtype=bool)
     for sample_index, sample_name in enumerate(tags.keys()):
         for tag in tags[sample_name]:
             labels[sample_index, tag_indices[tag]] = 1
