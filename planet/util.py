@@ -18,6 +18,9 @@ import csv
 # Third party
 import numpy
 
+import plotly
+plotly.offline.init_notebook_mode(connected=True)
+
 def read_tags(csv_path):
     """ Read tags from a CSV file into a map.
 
@@ -103,3 +106,33 @@ def tags_to_labels(tags, tag_indices):
         for tag in tags[sample_name]:
             labels[sample_index, tag_indices[tag]] = 1
     return labels
+
+
+def plot_bar(x, y, title, file_path):
+    """ Plots a bar chart with a title and writes to a file.
+    """
+    fig = plotly.graph_objs.Figure(
+            data=[plotly.graph_objs.Bar(x=list(x), y=list(y))],
+            layout=plotly.graph_objs.Layout(title=title)
+    )
+    plotly.offline.iplot(fig, filename=file_path)
+
+
+def plot_bar_group(x, Y, groups, colors, title, file_path):
+    """ Plots a grouped bar chart.
+    """
+    data = []
+    for i in range(len(groups)):
+        data.append(plotly.graph_objs.Bar(
+                x=list(x),
+                y=list(Y[i, :]),
+                name=groups[i],
+                marker={'color' : colors[i]}
+        ))
+
+    fig = plotly.graph_objs.Figure(
+            data=data,
+            layout=plotly.graph_objs.Layout(title=title, barmode='group')
+    )
+
+    plotly.offline.iplot(fig, filename=file_path)
