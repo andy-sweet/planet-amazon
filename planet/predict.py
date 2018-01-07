@@ -8,7 +8,7 @@ import planet.util
 
 # Third party
 import numpy
-import sklearn.metrics
+import sklearn.neighbors, sklearn.metrics
 
 
 def random(N, K, seed=0):
@@ -80,6 +80,34 @@ def empirical_random(N, label_probs, seed=0):
     return numpy.random.rand(N, label_probs.size) < label_probs
 
 
+class NearestNeighbors:
+
+    def __init__(self, X, Y, num_neighbors):
+        """ Creates a new nearest neighbors model.
+        """
+        self.impl = sklearn.neighbors.KNeighborsClassifier(n_neighbors=num_neighbors)
+        self.impl.fit(Y, X)
+        self.K = Y.shape[1]
+
+
+    def predict(self, Y):
+        """ Predicts labels from observed data.
+        """
+        return self.impl.predict(Y) > 0.5
+
+
+    def predict_prob(self, Y):
+        """ Predicts the probability of each label based on the training data.
+        """
+        return self.impl.predict_proba(Y)
+
+
+def f2_score(pred_labels, true_labels, avg_type):
+    """ Compute the average F2 score.
+    """
+    return sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=avg_type)
+
+
 def plot_scores(pred_labels, true_labels, label_names, classifier, file_path):
     """ Computes and plots the scores associated with a classifier.
     """
@@ -92,7 +120,7 @@ def plot_scores(pred_labels, true_labels, label_names, classifier, file_path):
     avg_type = 'micro'
     recall_avg = sklearn.metrics.recall_score(true_labels, pred_labels, average=avg_type)
     precision_avg = sklearn.metrics.precision_score(true_labels, pred_labels, average=avg_type)
-    f2_avg = sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=avg_type)
+    f2_avg = f2_score(pred_labels, true_labels, avg_type)
 
     title = 'Scores for {} Classifier. Recall={:.2f}, Precision={:.2f}, F2={:.2f}'.format(classifier, recall_avg, precision_avg, f2_avg)
     colors = ['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']
