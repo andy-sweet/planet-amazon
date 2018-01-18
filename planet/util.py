@@ -13,13 +13,71 @@ K : The number of labels.
 """
 
 # Built-in
-import csv
+import os, csv, zipfile, tarfile
 
 # Third party
 import numpy
 
 import plotly
 plotly.offline.init_notebook_mode(connected=True)
+
+import wget
+
+_this_dir = os.path.dirname(__file__)
+_repo_dir = os.path.join(_this_dir, "..")
+data_dir = os.path.join(_repo_dir, "data")
+
+data_url = 'https://storage.googleapis.com/planet-amazon'
+train_tags_name = 'train_v2.csv'
+train_images_name = 'train-jpg'
+
+train_tags_file_path = os.path.join(data_dir, train_tags_name)
+train_images_file_path = os.path.join(data_dir, train_images_name)
+
+
+def download_train_tags(force=False):
+    """ Download the training tags from the public remote location and extract them.
+
+    Keyword Arguments
+    =================
+    force : bool
+        If true, overwrite existing data if it already exists.
+    """
+    if not os.path.exists(train_tags_file_path) or force:
+        train_tags_url = '{}/{}.zip'.format(data_url, train_tags_name)
+        os.makedirs(data_dir, exist_ok=True)
+        zip_file_path = wget.download(train_tags_url, out=data_dir)
+        with zipfile.ZipFile(zip_file_path, "r") as zip_file:
+            zip_file.extractall(data_dir)
+
+
+def download_train_images(force=False):
+    """ Download the training images from the public remote location and extract them.
+
+    Keyword Arguments
+    =================
+    force : bool
+        If true, overwrite existing data if it already exists.
+    """
+    if not os.path.exists(train_images_file_path) or force:
+        train_images_url = '{}/{}.tar.7z'.format(data_url, train_images_name)
+        os.makedirs(data_dir, exist_ok=True)
+        tar_file_path = wget.download(train_images_url, out=data_dir)
+        with tarfile.TarFile(tar_file_path, "r") as tar_file:
+            tar_file.extractall(data_dir)
+
+
+def get_training_tags(force=False):
+    """ Download (if needed) and read the training tags.
+
+    Keyword Arguments
+    =================
+    force : bool
+        If true, overwrite existing data if it already exists.
+    """
+    download_train_tags(force)
+    return read_tags(train_tags_file_path)
+
 
 def read_tags(csv_path):
     """ Read tags from a CSV file into a map.
