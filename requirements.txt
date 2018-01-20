@@ -1,0 +1,7 @@
+coverage >= 4.4.1
+plotly >= 2.0.9
+pytest >= 3.2.1
+pytest-cov >= 2.3.1
+scikit-learn >= 0.18.1
+scikit-image >= 0.13.0
+wget >= 3.2
