@@ -19,7 +19,7 @@ import os, csv, zipfile, tarfile
 import numpy
 
 import plotly
-plotly.offline.init_notebook_mode(connected=True)
+#plotly.offline.init_notebook_mode(connected=True)
 
 import wget
 
