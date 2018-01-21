@@ -11,3 +11,5 @@ install:
 script: pytest --cov=planet test
 after_success:
     - coveralls
+notifications:
+    - email: false
