@@ -108,7 +108,7 @@ def f2_score(pred_labels, true_labels, avg_type):
     return sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=avg_type)
 
 
-def plot_scores(pred_labels, true_labels, label_names, classifier, file_path):
+def make_scores_plot(pred_labels, true_labels, label_names, classifier):
     """ Computes and plots the scores associated with a classifier.
     """
 
@@ -126,6 +126,4 @@ def plot_scores(pred_labels, true_labels, label_names, classifier, file_path):
     colors = ['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']
     groups = ['recall', 'precision', 'f2']
 
-    planet.util.plot_bar_group(label_names, scores, groups, colors, title, file_path)
-
-    return [recall_avg, precision_avg, f2_avg]
+    return planet.util.make_bar_group_plot(label_names, scores, groups, colors, title)

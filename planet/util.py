@@ -13,13 +13,69 @@ K : The number of labels.
 """
 
 # Built-in
-import csv, os
+import os, csv, zipfile
 
 # Third party
 import numpy
 import skimage.io, skimage.transform
 import plotly
-plotly.offline.init_notebook_mode(connected=True)
+import wget
+
+_this_dir = os.path.dirname(__file__)
+_repo_dir = os.path.join(_this_dir, "..")
+data_dir = os.path.join(_repo_dir, "data")
+
+data_url = 'https://storage.googleapis.com/planet-amazon'
+train_tags_name = 'train_v2.csv'
+train_images_name = 'train-jpg'
+
+train_tags_file_path = os.path.join(data_dir, train_tags_name)
+train_images_dir_path = os.path.join(data_dir, train_images_name)
+
+
+def download_train_tags(force=False):
+    """ Download the training tags from the public remote location and extract them.
+
+    Keyword Arguments
+    =================
+    force : bool
+        If true, overwrite existing data if it already exists.
+    """
+    if not os.path.exists(train_tags_file_path) or force:
+        train_tags_url = '{}/{}.zip'.format(data_url, train_tags_name)
+        os.makedirs(data_dir, exist_ok=True)
+        zip_file_path = wget.download(train_tags_url, out=data_dir)
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+            zip_file.extractall(data_dir)
+
+
+def download_train_images(force=False):
+    """ Download the training images from the public remote location and extract them.
+
+    Keyword Arguments
+    =================
+    force : bool
+        If true, overwrite existing data if it already exists.
+    """
+    if not os.path.exists(train_images_dir_path) or force:
+        train_images_url = '{}/{}.zip'.format(data_url, train_images_name)
+        os.makedirs(data_dir, exist_ok=True)
+        zip_file_path = wget.download(train_images_url, out=data_dir)
+        with zipfile.ZipFile(zip_file_path, 'r') as zip_file:
+            zip_file.extractall(data_dir)
+
+
+def get_training_tags(force=False):
+    """ Download (if needed) and read the training tags.
+
+    Keyword Arguments
+    =================
+    force : bool
+        If true, overwrite existing data if it already exists.
+    """
+    download_train_tags(force)
+    return read_tags(train_tags_file_path)
+
 
 
 def read_tags(csv_path):
@@ -128,18 +184,17 @@ def tags_to_labels(tags, tag_indices):
     return labels
 
 
-def plot_bar(x, y, title, file_path):
-    """ Plots a bar chart with a title and writes to a file.
+def make_bar_plot(x, y, title):
+    """ Makes a bar chart with a title.
     """
-    fig = plotly.graph_objs.Figure(
+    return plotly.graph_objs.Figure(
             data=[plotly.graph_objs.Bar(x=list(x), y=list(y))],
             layout=plotly.graph_objs.Layout(title=title)
     )
-    plotly.offline.iplot(fig, filename=file_path)
 
 
-def plot_bar_group(x, Y, groups, colors, title, file_path):
-    """ Plots a grouped bar chart.
+def make_bar_group_plot(x, Y, groups, colors, title):
+    """ Makes a grouped bar chart with a title.
     """
     data = []
     for i in range(len(groups)):
@@ -150,9 +205,7 @@ def plot_bar_group(x, Y, groups, colors, title, file_path):
                 marker={'color' : colors[i]}
         ))
 
-    fig = plotly.graph_objs.Figure(
+    return plotly.graph_objs.Figure(
             data=data,
             layout=plotly.graph_objs.Layout(title=title, barmode='group')
     )
-
-    plotly.offline.iplot(fig, filename=file_path)
