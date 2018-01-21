@@ -4,6 +4,8 @@ A belated submission to the interesting Kaggle competition here: https://www.kag
 
 Built with Python 3.6 and untested with Python 2.
 
+No stable releases yet and currently unstable.
+
 .. image:: https://travis-ci.org/andy-sweet/planet-amazon.svg?branch=develop
     :target: https://travis-ci.org/andy-sweet/planet-amazon
     :alt: Build Status
