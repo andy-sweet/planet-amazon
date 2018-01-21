@@ -80,7 +80,7 @@ def empirical_random(N, label_probs, seed=0):
     return numpy.random.rand(N, label_probs.size) < label_probs
 
 
-def plot_scores(pred_labels, true_labels, label_names, classifier, file_path):
+def make_scores_plot(pred_labels, true_labels, label_names, classifier):
     """ Computes and plots the scores associated with a classifier.
     """
 
@@ -98,6 +98,4 @@ def plot_scores(pred_labels, true_labels, label_names, classifier, file_path):
     colors = ['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']
     groups = ['recall', 'precision', 'f2']
 
-    planet.util.plot_bar_group(label_names, scores, groups, colors, title, file_path)
-
-    return [recall_avg, precision_avg, f2_avg]
+    return planet.util.make_bar_group_plot(label_names, scores, groups, colors, title)

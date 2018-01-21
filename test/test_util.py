@@ -10,7 +10,15 @@ import planet.util
 
 
 def test_download_train_tags():
-    """ Tests downloading the training tags.
+    """ tests downloading the training tags.
     """
     planet.util.download_train_tags()
     assert os.path.exists(planet.util.train_tags_file_path)
+
+
+def test_download_train_images():
+    """ Tests downloading the training images.
+    """
+    planet.util.download_train_images()
+    assert os.path.exists(planet.util.train_images_dir_path)
+    assert os.path.exists(os.path.join(planet.util.train_images_dir_path, 'train_0.jpg'))
