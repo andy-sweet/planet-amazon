@@ -6,13 +6,9 @@ Built with Python 3.6 and untested with Python 2.
 
 No stable releases yet and currently unstable.
 
-.. image:: https://travis-ci.org/andy-sweet/planet-amazon.svg?branch=develop
-    :target: https://travis-ci.org/andy-sweet/planet-amazon
-    :alt: Build Status
+[![Build Status](https://travis-ci.org/andy-sweet/planet-amazon.svg)](https://travis-ci.org/andy-sweet/planet-amazon)
 
-.. image:: https://coveralls.io/repos/andy-sweet/planet-amazon/badge.svg
-    :target: https://coveralls.io/r/andy-sweet/planet-amazon
-    :alt: Test Coverage
+[![Test Coverage](https://coveralls.io/r/andy-sweet/planet-amazon.svg)](https://coveralls.io/r/andy-sweet/planet-amazon)
 
 
 ## Repository Structure
