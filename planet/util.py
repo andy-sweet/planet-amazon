@@ -17,6 +17,7 @@ import os, csv, zipfile
 
 # Third party
 import numpy
+import skimage.io, skimage.transform
 import plotly
 import wget
 
@@ -76,6 +77,7 @@ def get_training_tags(force=False):
     return read_tags(train_tags_file_path)
 
 
+
 def read_tags(csv_path):
     """ Read tags from a CSV file into a map.
 
@@ -95,6 +97,25 @@ def read_tags(csv_path):
         for row in reader:
             tags[row['image_name']] = row['tags'].split()
     return tags
+
+
+def read_images(image_dir, names, out_size=None):
+    """ Reads the images with the given names.
+    """
+    num_images = len(names)
+    if out_size is None:
+        images = numpy.empty((num_images, 256, 256, 3))
+    else:
+        images = numpy.empty((num_images, out_size[0], out_size[1], 3))
+
+    for index, name in enumerate(names):
+        image = skimage.io.imread(os.path.join(image_dir, name + ".jpg"))
+        if out_size is None:
+            images[index, :, :, :] = image
+        else:
+            images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect')
+
+    return images
 
 
 def count_tags(tags):

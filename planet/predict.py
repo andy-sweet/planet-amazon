@@ -8,7 +8,8 @@ import planet.util
 
 # Third party
 import numpy
-import sklearn.metrics
+import sklearn.neighbors, sklearn.metrics, sklearn.model_selection
+import tqdm
 
 
 def random(N, K, seed=0):
@@ -80,6 +81,57 @@ def empirical_random(N, label_probs, seed=0):
     return numpy.random.rand(N, label_probs.size) < label_probs
 
 
+def split_data(num_samples, num_splits):
+    """ Yields a split of data into train and test indices.
+    """
+
+    kf = sklearn.model_selection.KFold(n_splits=num_splits, random_state=0);
+    return kf.split(range(num_samples))
+
+
+def flatten_images(images):
+    return numpy.reshape(images, (images.shape[0], -1))
+
+
+def score_k_nearest_neighbors(images, labels, ks, num_splits):
+    """ Scores k-nearest neighbors with different values of k.
+    """
+
+    num_samples = images.shape[0]
+    num_ks = len(ks)
+    scores = numpy.zeros((num_splits, num_ks))
+    with tqdm.tqdm(total=(num_splits * num_ks)) as progress:
+        for split_index, (train, test) in enumerate(split_data(num_samples, num_splits)):
+            for k_index, k in enumerate(ks):
+                knn = KNearestNeighbors(images[train, :, :, :], labels[train, :], k)
+                pred_labels = knn.predict(images[test, :, :, :])
+                scores[split_index, k_index] = f2_score(pred_labels, labels[test, :], 'micro')
+                progress.update((split_index * num_ks) + k_index + 1)
+
+    return numpy.mean(scores, axis=0)
+
+
+class KNearestNeighbors:
+
+    def __init__(self, images, labels, k):
+        """ Creates a new nearest neighbors model.
+        """
+        self.impl = sklearn.neighbors.KNeighborsClassifier(n_neighbors=k)
+        self.impl.fit(flatten_images(images), labels)
+
+
+    def predict(self, images):
+        """ Predicts labels from observed data.
+        """
+        return self.impl.predict(flatten_images(images))
+
+
+def f2_score(pred_labels, true_labels, avg_type):
+    """ Compute the average F2 score.
+    """
+    return sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=avg_type)
+
+
 def make_scores_plot(pred_labels, true_labels, label_names, classifier):
     """ Computes and plots the scores associated with a classifier.
     """
@@ -92,7 +144,7 @@ def make_scores_plot(pred_labels, true_labels, label_names, classifier):
     avg_type = 'micro'
     recall_avg = sklearn.metrics.recall_score(true_labels, pred_labels, average=avg_type)
     precision_avg = sklearn.metrics.precision_score(true_labels, pred_labels, average=avg_type)
-    f2_avg = sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=avg_type)
+    f2_avg = f2_score(pred_labels, true_labels, avg_type)
 
     title = 'Scores for {} Classifier. Recall={:.2f}, Precision={:.2f}, F2={:.2f}'.format(classifier, recall_avg, precision_avg, f2_avg)
     colors = ['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']
