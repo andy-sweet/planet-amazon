@@ -1,6 +1,3 @@
-""" Tests the utility functions.
-"""
-
 # Built-in
 import os, sys
 

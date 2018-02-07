@@ -8,7 +8,8 @@ import planet.util
 
 # Third party
 import numpy
-import sklearn.neighbors, sklearn.metrics
+import sklearn.neighbors, sklearn.metrics, sklearn.model_selection
+import tqdm
 
 
 def random(N, K, seed=0):
@@ -80,26 +81,49 @@ def empirical_random(N, label_probs, seed=0):
     return numpy.random.rand(N, label_probs.size) < label_probs
 
 
-class NearestNeighbors:
+def split_data(num_samples, num_splits):
+    """ Yields a split of data into train and test indices.
+    """
 
-    def __init__(self, X, Y, num_neighbors):
+    kf = sklearn.model_selection.KFold(n_splits=num_splits, random_state=0);
+    return kf.split(range(num_samples))
+
+
+def flatten_images(images):
+    return numpy.reshape(images, (images.shape[0], -1))
+
+
+def score_k_nearest_neighbors(images, labels, ks, num_splits):
+    """ Scores k-nearest neighbors with different values of k.
+    """
+
+    num_samples = images.shape[0]
+    num_ks = len(ks)
+    scores = numpy.zeros((num_splits, num_ks))
+    with tqdm.tqdm(total=(num_splits * num_ks)) as progress:
+        for split_index, (train, test) in enumerate(split_data(num_samples, num_splits)):
+            for k_index, k in enumerate(ks):
+                knn = KNearestNeighbors(images[train, :, :, :], labels[train, :], k)
+                pred_labels = knn.predict(images[test, :, :, :])
+                scores[split_index, k_index] = f2_score(pred_labels, labels[test, :], 'micro')
+                progress.update((split_index * num_ks) + k_index + 1)
+
+    return numpy.mean(scores, axis=0)
+
+
+class KNearestNeighbors:
+
+    def __init__(self, images, labels, k):
         """ Creates a new nearest neighbors model.
         """
-        self.impl = sklearn.neighbors.KNeighborsClassifier(n_neighbors=num_neighbors)
-        self.impl.fit(Y, X)
-        self.K = Y.shape[1]
+        self.impl = sklearn.neighbors.KNeighborsClassifier(n_neighbors=k)
+        self.impl.fit(flatten_images(images), labels)
 
 
-    def predict(self, Y):
+    def predict(self, images):
         """ Predicts labels from observed data.
         """
-        return self.impl.predict(Y) > 0.5
-
-
-    def predict_prob(self, Y):
-        """ Predicts the probability of each label based on the training data.
-        """
-        return self.impl.predict_proba(Y)
+        return self.impl.predict(flatten_images(images))
 
 
 def f2_score(pred_labels, true_labels, avg_type):
