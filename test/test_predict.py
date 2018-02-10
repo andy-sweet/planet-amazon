@@ -47,3 +47,14 @@ def test_score_k_nearest_neighbors():
     labels = numpy.array([[1, 1], [1, 1], [1, 1], [1, 1]])
     scores = planet.predict.score_k_nearest_neighbors(images, labels, [1, 3], 4)
     assert scores.shape == (2,)
+
+
+def test_conv_neural_network():
+    """ Check that CNN is trained and can predict the right shape/class.
+    """
+    images = numpy.random.randint(256, size=(64, 32, 32, 3), dtype='uint8')
+    labels = numpy.random.randint(2, size=(64, 2), dtype='bool')
+    cnn = planet.predict.ConvNeuralNetwork(images, labels, 4, [3, 5], [3, 3])
+    test_images = numpy.random.randint(256, size=(27, 32, 32, 3), dtype='uint8')
+    pred_labels = cnn.predict(test_images)
+    assert pred_labels.shape == (27, 2)

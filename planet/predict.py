@@ -10,6 +10,7 @@ import planet.util
 import numpy
 import sklearn.neighbors, sklearn.metrics, sklearn.model_selection
 import tqdm
+import keras.models, keras.layers
 
 
 def random(N, K, seed=0):
@@ -124,6 +125,64 @@ class KNearestNeighbors:
         """ Predicts labels from observed data.
         """
         return self.impl.predict(flatten_images(images))
+
+
+class ConvNeuralNetwork:
+
+    def __init__(self, images, labels, num_hidden, num_filters, filter_sizes, batch_size=128, num_epochs=1):
+        """ Creates a convolutional neural network.
+
+        Arguments
+        ---------
+        images : array-like (N, R, C, D)
+            The input images with which to train.
+        labels : array-like (N, K)
+            The output labels with which to train.
+        num_hidden : int > 0
+            Number of hidden nodes in penultimate layer.
+        num_filters : array-like (F,)
+            Number of filters in each layer (length determines number of layers).
+        filter_sizes : array-like (F,)
+            Sizes of filters in each layer (length should match that of num_filters).
+        """
+
+        (N, K) = labels.shape
+        (N, R, C, D) = images.shape
+        F = len(num_filters)
+
+        self.impl = keras.models.Sequential()
+        for f in range(F):
+            self.impl.add(keras.layers.convolutional.Conv2D(
+                num_filters[f], kernel_size=filter_sizes[f],
+                activation='relu', input_shape=(R, C, D), padding='same')
+            )
+            self.impl.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
+            self.impl.add(keras.layers.Dropout(0.25))
+
+        self.impl.add(keras.layers.Flatten())
+        self.impl.add(keras.layers.Dense(num_hidden, activation='relu'))
+        self.impl.add(keras.layers.Dropout(0.5))
+        self.impl.add(keras.layers.Dense(K, activation='sigmoid'))
+        optimizer = keras.optimizers.SGD()
+        self.impl.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+        self.impl.summary()
+        self.impl.fit(images, labels, batch_size=batch_size, epochs=num_epochs, verbose=2)
+
+
+    @classmethod
+    def read(cls, file_path):
+        self.impl = keras.models.load_model(file_path)
+
+
+    def write(self, file_path):
+        self.impl.save(file_path)
+
+
+    def predict(self, images):
+        """ Predicts labels from observed data.
+        """
+
+        return self.impl.predict(images) > 0.5
 
 
 def f2_score(pred_labels, true_labels, avg_type):
