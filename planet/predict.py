@@ -8,7 +8,7 @@ import planet.util
 
 # Third party
 import numpy
-import sklearn.neighbors, sklearn.metrics, sklearn.model_selection
+import sklearn.neighbors, sklearn.metrics
 import tqdm
 import keras.models, keras.layers
 
@@ -82,14 +82,6 @@ def empirical_random(N, label_probs, seed=0):
     return numpy.random.rand(N, label_probs.size) < label_probs
 
 
-def split_data(num_samples, num_splits):
-    """ Yields a split of data into train and test indices.
-    """
-
-    kf = sklearn.model_selection.KFold(n_splits=num_splits, random_state=0);
-    return kf.split(range(num_samples))
-
-
 def flatten_images(images):
     return numpy.reshape(images, (images.shape[0], -1))
 
@@ -102,7 +94,7 @@ def score_k_nearest_neighbors(images, labels, ks, num_splits):
     num_ks = len(ks)
     scores = numpy.zeros((num_splits, num_ks))
     with tqdm.tqdm(total=(num_splits * num_ks)) as progress:
-        for split_index, (train, test) in enumerate(split_data(num_samples, num_splits)):
+        for split_index, (train, test) in enumerate(planet.util.split_data(num_samples, num_splits)):
             for k_index, k in enumerate(ks):
                 knn = KNearestNeighbors(images[train, :, :, :], labels[train, :], k)
                 pred_labels = knn.predict(images[test, :, :, :])
@@ -127,62 +119,61 @@ class KNearestNeighbors:
         return self.impl.predict(flatten_images(images))
 
 
-class ConvNeuralNetwork:
+class VGG19ConvNeuralNetwork(object):
 
-    def __init__(self, images, labels, num_hidden, num_filters, filter_sizes, batch_size=128, num_epochs=1):
-        """ Creates a convolutional neural network.
-
-        Arguments
-        ---------
-        images : array-like (N, R, C, D)
-            The input images with which to train.
-        labels : array-like (N, K)
-            The output labels with which to train.
-        num_hidden : int > 0
-            Number of hidden nodes in penultimate layer.
-        num_filters : array-like (F,)
-            Number of filters in each layer (length determines number of layers).
-        filter_sizes : array-like (F,)
-            Sizes of filters in each layer (length should match that of num_filters).
-        """
-
-        (N, K) = labels.shape
-        (N, R, C, D) = images.shape
-        F = len(num_filters)
-
-        self.impl = keras.models.Sequential()
-        for f in range(F):
-            self.impl.add(keras.layers.convolutional.Conv2D(
-                num_filters[f], kernel_size=filter_sizes[f],
-                activation='relu', input_shape=(R, C, D), padding='same')
-            )
-            self.impl.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
-            self.impl.add(keras.layers.Dropout(0.25))
-
-        self.impl.add(keras.layers.Flatten())
-        self.impl.add(keras.layers.Dense(num_hidden, activation='relu'))
-        self.impl.add(keras.layers.Dropout(0.5))
-        self.impl.add(keras.layers.Dense(K, activation='sigmoid'))
-        optimizer = keras.optimizers.SGD()
-        self.impl.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
-        self.impl.summary()
-        self.impl.fit(images, labels, batch_size=batch_size, epochs=num_epochs, verbose=2)
+    def __init__(self):
+        self.vgg19 = None
+        self.top = None
 
 
     @classmethod
-    def read(cls, file_path):
-        self.impl = keras.models.load_model(file_path)
+    def from_data(cls, images, labels, num_hidden, batch_size=128, num_epochs=1):
+        self = cls()
+        (N, K) = labels.shape
+        (M, R, C, D) = images.shape
+        assert M == N
+        assert (R, C, D) == (224, 224, 3)
+
+        self._init_vgg19()
+        responses = self.vgg19.predict(images)
+
+        self.top = keras.models.Sequential()
+        self.top.add(keras.layers.Flatten(input_shape=(7, 7, 512)))
+        self.top.add(keras.layers.Dense(num_hidden, activation='relu'))
+        self.top.add(keras.layers.Dense(K, activation='sigmoid'))
+        self.top.compile(loss='binary_crossentropy', optimizer='sgd', metrics=['accuracy'])
+        self.top.fit(responses, labels, batch_size=batch_size, epochs=num_epochs, verbose=2)
+        return self
+
+
+    @classmethod
+    def from_file(cls, file_path):
+        self = cls()
+        self._init_vgg19()
+        self.top = keras.models.load_model(file_path)
+        return self
+
+
+    @classmethod
+    def train(cls, file_path, num_hidden=32, batch_size=128, num_epochs=4):
+        [train_images, train_labels] = planet.util.get_train_data(image_size=(224, 224))
+        self = cls.from_data(images[train_inds, :], labels[train_inds, :],
+                num_hidden=num_hidden, batch_size=batch_size, num_epochs=num_epochs)
+        self.write(file_path)
+        return self
+
+
+    def _init_vgg19(self):
+        self.vgg19 = keras.applications.vgg19.VGG19(include_top=False)
 
 
     def write(self, file_path):
-        self.impl.save(file_path)
+        self.top.save(file_path)
 
 
     def predict(self, images):
-        """ Predicts labels from observed data.
-        """
-
-        return self.impl.predict(images) > 0.5
+        responses = self.vgg19.predict(images)
+        return self.top.predict(responses) > 0.5
 
 
 def f2_score(pred_labels, true_labels, avg_type):

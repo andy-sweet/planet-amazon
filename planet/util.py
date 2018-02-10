@@ -18,6 +18,7 @@ import os, csv, zipfile
 # Third party
 import numpy
 import skimage.io, skimage.transform
+import sklearn.model_selection
 import plotly
 import wget
 
@@ -31,6 +32,24 @@ train_images_name = 'train-jpg'
 
 train_tags_file_path = os.path.join(data_dir, train_tags_name)
 train_images_dir_path = os.path.join(data_dir, train_images_name)
+
+
+def get_train_data(num_samples=None, image_size=None):
+    all_tags = get_train_tags()
+
+    if num_samples is None:
+        num_samples = len(all_tags)
+
+    train_inds, test_inds = next(split_data(num_samples, 2))
+
+    tag_indices = get_tag_indices(all_tags)
+    labels = tags_to_labels(all_tags, tag_indices)[train_inds, :]
+
+    all_names = list(all_tags.keys())
+    train_names = [all_names[ind] for ind in train_inds]
+    images = read_images(train_images_dir_path, train_names, out_size=image_size)
+
+    return (images, labels)
 
 
 def download_train_tags(force=False):
@@ -65,7 +84,7 @@ def download_train_images(force=False):
             zip_file.extractall(data_dir)
 
 
-def get_training_tags(force=False):
+def get_train_tags(force=False):
     """ Download (if needed) and read the training tags.
 
     Keyword Arguments
@@ -182,6 +201,14 @@ def tags_to_labels(tags, tag_indices):
         for tag in tags[sample_name]:
             labels[sample_index, tag_indices[tag]] = 1
     return labels
+
+
+def split_data(num_samples, num_splits):
+    """ Yields a split of data into train and test indices.
+    """
+
+    kf = sklearn.model_selection.KFold(n_splits=num_splits, random_state=0);
+    return kf.split(range(num_samples))
 
 
 def make_bar_plot(x, y, title):
