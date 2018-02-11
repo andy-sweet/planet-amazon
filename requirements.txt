@@ -7,4 +7,4 @@ scikit-learn >= 0.18.1
 scikit-image >= 0.13.0
 tensorflow >= 1.1.0
 tqdm >= 4.15
-wget >= 3.2
+wget >= 1.18
