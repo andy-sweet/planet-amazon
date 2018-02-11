@@ -56,3 +56,12 @@ def test_vgg19_conv_neural_network():
 
     read_cnn = planet.predict.VGG19ConvNeuralNetwork.from_file(out_file.name)
     numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())
+
+
+def test_vgg19_conv_neural_network_train():
+    """ Check that the VGG19 CNN training creates a file with identical weights.
+    """
+    out_file = tempfile.NamedTemporaryFile()
+    cnn = planet.predict.VGG19ConvNeuralNetwork.train(out_file.name, num_samples=2)
+    read_cnn = planet.predict.VGG19ConvNeuralNetwork.from_file(out_file.name)
+    numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())

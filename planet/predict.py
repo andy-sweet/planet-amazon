@@ -155,10 +155,9 @@ class VGG19ConvNeuralNetwork(object):
 
 
     @classmethod
-    def train(cls, file_path, num_hidden=32, batch_size=128, num_epochs=4):
-        [train_images, train_labels] = planet.util.get_train_data(image_size=(224, 224))
-        self = cls.from_data(images[train_inds, :], labels[train_inds, :],
-                num_hidden=num_hidden, batch_size=batch_size, num_epochs=num_epochs)
+    def train(cls, file_path, num_hidden=32, batch_size=128, num_epochs=4, num_samples=None):
+        [images, labels] = planet.util.get_train_data(num_samples=num_samples, image_size=(224, 224))
+        self = cls.from_data(images, labels, num_hidden=num_hidden, batch_size=batch_size, num_epochs=num_epochs)
         self.write(file_path)
         return self
 
