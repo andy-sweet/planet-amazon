@@ -21,6 +21,7 @@ import skimage.io, skimage.transform
 import sklearn.model_selection
 import plotly
 import wget
+import tqdm
 
 _this_dir = os.path.dirname(__file__)
 _repo_dir = os.path.join(_this_dir, "..")
@@ -56,7 +57,7 @@ def download_train_tags(force=False):
     """ Download the training tags from the public remote location and extract them.
 
     Keyword Arguments
-    =================
+    -----------------
     force : bool
         If true, overwrite existing data if it already exists.
     """
@@ -72,7 +73,7 @@ def download_train_images(force=False):
     """ Download the training images from the public remote location and extract them.
 
     Keyword Arguments
-    =================
+    -----------------
     force : bool
         If true, overwrite existing data if it already exists.
     """
@@ -88,7 +89,7 @@ def get_train_tags(force=False):
     """ Download (if needed) and read the training tags.
 
     Keyword Arguments
-    =================
+    -----------------
     force : bool
         If true, overwrite existing data if it already exists.
     """
@@ -125,16 +126,18 @@ def read_images(image_dir, names, out_size=None):
     image = skimage.io.imread(os.path.join(image_dir, names[0] + '.jpg'))
     dtype = image.dtype;
     if out_size is None:
-        images = numpy.empty((num_images, 256, 256, 3), dtype=dtype)
-    else:
-        images = numpy.empty((num_images, out_size[0], out_size[1], 3), dtype=dtype)
+        out_size = image.shape[0:2]
 
-    for index, name in enumerate(names):
-        image = skimage.io.imread(os.path.join(image_dir, name + '.jpg'))
-        if out_size is None:
-            images[index, :, :, :] = image
-        else:
-            images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect').astype(dtype)
+    images = numpy.empty((num_images, out_size[0], out_size[1], 3), dtype=dtype)
+    with tqdm.tqdm(total=num_images) as progress:
+        for index, name in enumerate(names):
+            image = skimage.io.imread(os.path.join(image_dir, name + '.jpg'))
+            if out_size is None:
+                images[index, :, :, :] = image
+            else:
+                images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect', preserve_range=True).astype(dtype)
+            progress.update(index)
+            progress.set_description('Finished reading image {}/{}'.format(index, num_images))
 
     return images
 
