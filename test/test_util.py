@@ -24,6 +24,7 @@ def test_split_data():
 def test_get_train_data():
     [images, labels] = planet.util.get_train_data(4, image_size=(8, 8))
     assert images.shape == (2, 8, 8, 3)
+    assert images.dtype == numpy.uint8
     assert labels.shape == (2, 17)
 
 

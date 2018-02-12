@@ -122,17 +122,19 @@ def read_images(image_dir, names, out_size=None):
     """ Reads the images with the given names.
     """
     num_images = len(names)
+    image = skimage.io.imread(os.path.join(image_dir, names[0] + '.jpg'))
+    dtype = image.dtype;
     if out_size is None:
-        images = numpy.empty((num_images, 256, 256, 3))
+        images = numpy.empty((num_images, 256, 256, 3), dtype=dtype)
     else:
-        images = numpy.empty((num_images, out_size[0], out_size[1], 3))
+        images = numpy.empty((num_images, out_size[0], out_size[1], 3), dtype=dtype)
 
     for index, name in enumerate(names):
-        image = skimage.io.imread(os.path.join(image_dir, name + ".jpg"))
+        image = skimage.io.imread(os.path.join(image_dir, name + '.jpg'))
         if out_size is None:
             images[index, :, :, :] = image
         else:
-            images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect')
+            images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect').astype(dtype)
 
     return images
 
