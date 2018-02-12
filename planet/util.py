@@ -21,6 +21,7 @@ import skimage.io, skimage.transform
 import sklearn.model_selection
 import plotly
 import wget
+import tqdm
 
 _this_dir = os.path.dirname(__file__)
 _repo_dir = os.path.join(_this_dir, "..")
@@ -127,12 +128,15 @@ def read_images(image_dir, names, out_size=None):
     else:
         images = numpy.empty((num_images, out_size[0], out_size[1], 3))
 
-    for index, name in enumerate(names):
-        image = skimage.io.imread(os.path.join(image_dir, name + ".jpg"))
-        if out_size is None:
-            images[index, :, :, :] = image
-        else:
-            images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect')
+    with tqdm.tqdm(total=num_images) as progress:
+        for index, name in enumerate(names):
+            image = skimage.io.imread(os.path.join(image_dir, name + ".jpg"))
+            if out_size is None:
+                images[index, :, :, :] = image
+            else:
+                images[index, :, :, :] = skimage.transform.resize(image, out_size,
+                        mode='reflect', preserve_range=True)
+            progress.update(index)
 
     return images
 
