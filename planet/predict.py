@@ -99,7 +99,7 @@ def score_k_nearest_neighbors(images, labels, ks, num_splits):
                 knn = KNearestNeighbors(images[train, :, :, :], labels[train, :], k)
                 pred_labels = knn.predict(images[test, :, :, :])
                 scores[split_index, k_index] = f2_score(pred_labels, labels[test, :], 'micro')
-                progress.update((split_index * num_ks) + k_index + 1)
+                progress.update(1)
 
     return numpy.mean(scores, axis=0)
 
@@ -171,8 +171,8 @@ class VGG19ConvNeuralNetwork(object):
 
 
     def predict(self, images):
-        responses = self.vgg19.predict(images)
-        return self.top.predict(responses) > 0.5
+        responses = self.vgg19.predict(images, verbose=1)
+        return self.top.predict(responses, verbose=1) > 0.5
 
 
 def f2_score(pred_labels, true_labels, avg_type):

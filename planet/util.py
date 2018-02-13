@@ -136,8 +136,7 @@ def read_images(image_dir, names, out_size=None):
                 images[index, :, :, :] = image
             else:
                 images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect', preserve_range=True).astype(dtype)
-            progress.update(index)
-            progress.set_description('Finished reading image {}/{}'.format(index, num_images))
+            progress.update(1)
 
     return images
 
