@@ -48,7 +48,7 @@ def get_train_data(num_samples=None, image_size=None):
 
     all_names = list(all_tags.keys())
     train_names = [all_names[ind] for ind in train_inds]
-    images = read_images(train_images_dir_path, train_names, out_size=image_size)
+    images = get_train_images(train_names, image_size=image_size)
 
     return (images, labels)
 
@@ -93,9 +93,8 @@ def get_train_tags(force=False):
     force : bool
         If true, overwrite existing data if it already exists.
     """
-    download_train_tags(force)
+    download_train_tags(force=force)
     return read_tags(train_tags_file_path)
-
 
 
 def read_tags(csv_path):
@@ -119,23 +118,30 @@ def read_tags(csv_path):
     return tags
 
 
-def read_images(image_dir, names, out_size=None):
+def get_train_images(names, image_size=None, force=False):
+    """ Download (if needed) and read the training images.
+    """
+    download_train_images(force=force)
+    return read_images(train_images_dir_path, names, image_size=image_size)
+
+
+def read_images(image_dir, names, image_size=None):
     """ Reads the images with the given names.
     """
     num_images = len(names)
     image = skimage.io.imread(os.path.join(image_dir, names[0] + '.jpg'))
     dtype = image.dtype;
-    if out_size is None:
-        out_size = image.shape[0:2]
+    if image_size is None:
+        image_size = image.shape[0:2]
 
-    images = numpy.empty((num_images, out_size[0], out_size[1], 3), dtype=dtype)
+    images = numpy.empty((num_images, image_size[0], image_size[1], 3), dtype=dtype)
     with tqdm.tqdm(total=num_images) as progress:
         for index, name in enumerate(names):
             image = skimage.io.imread(os.path.join(image_dir, name + '.jpg'))
-            if out_size is None:
+            if image_size is None:
                 images[index, :, :, :] = image
             else:
-                images[index, :, :, :] = resize_image(image, out_size)
+                images[index, :, :, :] = resize_image(image, image_size)
             progress.update(1)
 
     return images
