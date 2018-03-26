@@ -135,10 +135,30 @@ def read_images(image_dir, names, out_size=None):
             if out_size is None:
                 images[index, :, :, :] = image
             else:
-                images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect', preserve_range=True).astype(dtype)
+                images[index, :, :, :] = resize_image(image, out_size)
             progress.update(1)
 
     return images
+
+
+def resize_image(image, size):
+    """ Resizes 2D image to new 2D size over all channels.
+    """
+    return skimage.transform.resize(image, size, mode='reflect', preserve_range=True).astype(image.dtype)
+
+
+def resize_images(images, size):
+    """ Resizes 2D images to new 2D size over all channels.
+    """
+    num_images = images.shape[0]
+    num_channels = images.shape[3]
+    output_images = numpy.empty((num_images, size[0], size[1], num_channels), dtype=images.dtype)
+    with tqdm.tqdm(total=num_images) as progress:
+        for i in range(num_images):
+            output_images[i, :, :, :] = resize_image(images[i, :, :, :], size)
+            progress.update(1)
+
+    return output_images
 
 
 def count_tags(tags):
