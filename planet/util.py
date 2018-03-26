@@ -18,8 +18,10 @@ import os, csv, zipfile
 # Third party
 import numpy
 import skimage.io, skimage.transform
+import sklearn.model_selection
 import plotly
 import wget
+import tqdm
 
 _this_dir = os.path.dirname(__file__)
 _repo_dir = os.path.join(_this_dir, "..")
@@ -33,11 +35,29 @@ train_tags_file_path = os.path.join(data_dir, train_tags_name)
 train_images_dir_path = os.path.join(data_dir, train_images_name)
 
 
+def get_train_data(num_samples=None, image_size=None):
+    all_tags = get_train_tags()
+
+    if num_samples is None:
+        num_samples = len(all_tags)
+
+    train_inds, test_inds = next(split_data(num_samples, 2))
+
+    tag_indices = get_tag_indices(all_tags)
+    labels = tags_to_labels(all_tags, tag_indices)[train_inds, :]
+
+    all_names = list(all_tags.keys())
+    train_names = [all_names[ind] for ind in train_inds]
+    images = get_train_images(train_names, image_size=image_size)
+
+    return (images, labels)
+
+
 def download_train_tags(force=False):
     """ Download the training tags from the public remote location and extract them.
 
     Keyword Arguments
-    =================
+    -----------------
     force : bool
         If true, overwrite existing data if it already exists.
     """
@@ -53,7 +73,7 @@ def download_train_images(force=False):
     """ Download the training images from the public remote location and extract them.
 
     Keyword Arguments
-    =================
+    -----------------
     force : bool
         If true, overwrite existing data if it already exists.
     """
@@ -65,17 +85,16 @@ def download_train_images(force=False):
             zip_file.extractall(data_dir)
 
 
-def get_training_tags(force=False):
+def get_train_tags(force=False):
     """ Download (if needed) and read the training tags.
 
     Keyword Arguments
-    =================
+    -----------------
     force : bool
         If true, overwrite existing data if it already exists.
     """
-    download_train_tags(force)
+    download_train_tags(force=force)
     return read_tags(train_tags_file_path)
-
 
 
 def read_tags(csv_path):
@@ -99,23 +118,53 @@ def read_tags(csv_path):
     return tags
 
 
-def read_images(image_dir, names, out_size=None):
+def get_train_images(names, image_size=None, force=False):
+    """ Download (if needed) and read the training images.
+    """
+    download_train_images(force=force)
+    return read_images(train_images_dir_path, names, image_size=image_size)
+
+
+def read_images(image_dir, names, image_size=None):
     """ Reads the images with the given names.
     """
     num_images = len(names)
-    if out_size is None:
-        images = numpy.empty((num_images, 256, 256, 3))
-    else:
-        images = numpy.empty((num_images, out_size[0], out_size[1], 3))
+    image = skimage.io.imread(os.path.join(image_dir, names[0] + '.jpg'))
+    dtype = image.dtype;
+    if image_size is None:
+        image_size = image.shape[0:2]
 
-    for index, name in enumerate(names):
-        image = skimage.io.imread(os.path.join(image_dir, name + ".jpg"))
-        if out_size is None:
-            images[index, :, :, :] = image
-        else:
-            images[index, :, :, :] = skimage.transform.resize(image, out_size, mode='reflect')
+    images = numpy.empty((num_images, image_size[0], image_size[1], 3), dtype=dtype)
+    with tqdm.tqdm(total=num_images) as progress:
+        for index, name in enumerate(names):
+            image = skimage.io.imread(os.path.join(image_dir, name + '.jpg'))
+            if image_size is None:
+                images[index, :, :, :] = image
+            else:
+                images[index, :, :, :] = resize_image(image, image_size)
+            progress.update(1)
 
     return images
+
+
+def resize_image(image, size):
+    """ Resizes 2D image to new 2D size over all channels.
+    """
+    return skimage.transform.resize(image, size, mode='reflect', preserve_range=True).astype(image.dtype)
+
+
+def resize_images(images, size):
+    """ Resizes 2D images to new 2D size over all channels.
+    """
+    num_images = images.shape[0]
+    num_channels = images.shape[3]
+    output_images = numpy.empty((num_images, size[0], size[1], num_channels), dtype=images.dtype)
+    with tqdm.tqdm(total=num_images) as progress:
+        for i in range(num_images):
+            output_images[i, :, :, :] = resize_image(images[i, :, :, :], size)
+            progress.update(1)
+
+    return output_images
 
 
 def count_tags(tags):
@@ -182,6 +231,14 @@ def tags_to_labels(tags, tag_indices):
         for tag in tags[sample_name]:
             labels[sample_index, tag_indices[tag]] = 1
     return labels
+
+
+def split_data(num_samples, num_splits):
+    """ Yields a split of data into train and test indices.
+    """
+
+    kf = sklearn.model_selection.KFold(n_splits=num_splits, random_state=0);
+    return kf.split(range(num_samples))
 
 
 def make_bar_plot(x, y, title):

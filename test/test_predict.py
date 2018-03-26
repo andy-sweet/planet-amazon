@@ -1,23 +1,9 @@
-import os, sys
+import os, sys, tempfile
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import planet.predict
 
 import numpy.testing
-
-def test_split_data():
-    """ Check a two way split of data.
-    """
-    split_index = 0
-    for train, test in planet.predict.split_data(10, 2):
-        if split_index == 0:
-            numpy.testing.assert_equal(train, range(5, 10))
-            numpy.testing.assert_equal(test, range(0, 5))
-        elif split_index == 1:
-            numpy.testing.assert_equal(train, range(0, 5))
-            numpy.testing.assert_equal(test, range(5, 10))
-        split_index += 1
-    assert split_index == 2
 
 
 def test_1_nearest_neighbor():
@@ -47,3 +33,35 @@ def test_score_k_nearest_neighbors():
     labels = numpy.array([[1, 1], [1, 1], [1, 1], [1, 1]])
     scores = planet.predict.score_k_nearest_neighbors(images, labels, [1, 3], 4)
     assert scores.shape == (2,)
+
+
+def test_vgg19_conv_neural_network():
+    """ Check that the VGG19 CNN is trained and can predict the right shape/class.
+    """
+    num_train = 4
+    num_test = 3
+    num_rows = 224
+    num_cols = 224
+    num_channels = 3
+    num_labels = 2
+    images = numpy.random.randint(256, size=(num_train, num_rows, num_cols, num_channels), dtype='uint8')
+    labels = numpy.random.randint(2, size=(num_train, num_labels), dtype='bool')
+    cnn = planet.predict.VGG19ConvNeuralNetwork.from_data(images, labels, 4)
+    test_images = numpy.random.randint(256, size=(num_test, num_rows, num_cols, num_channels), dtype='uint8')
+    pred_labels = cnn.predict(test_images)
+    assert pred_labels.shape == (num_test, num_labels)
+
+    out_file = tempfile.NamedTemporaryFile()
+    cnn.write(out_file.name)
+
+    read_cnn = planet.predict.VGG19ConvNeuralNetwork.from_file(out_file.name)
+    numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())
+
+
+def test_vgg19_conv_neural_network_train():
+    """ Check that the VGG19 CNN training creates a file with identical weights.
+    """
+    out_file = tempfile.NamedTemporaryFile()
+    cnn = planet.predict.VGG19ConvNeuralNetwork.train(out_file.name, num_samples=2)
+    read_cnn = planet.predict.VGG19ConvNeuralNetwork.from_file(out_file.name)
+    numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())
