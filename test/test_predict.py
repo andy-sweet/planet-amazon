@@ -35,7 +35,7 @@ def test_score_k_nearest_neighbors():
     assert scores.shape == (2,)
 
 
-def test_vgg19_conv_neural_network():
+def test_vgg19_cnn():
     """ Check that the VGG19 CNN is trained and can predict the right shape/class.
     """
     num_train = 4
@@ -46,7 +46,7 @@ def test_vgg19_conv_neural_network():
     num_labels = 2
     images = numpy.random.randint(256, size=(num_train, num_rows, num_cols, num_channels), dtype='uint8')
     labels = numpy.random.randint(2, size=(num_train, num_labels), dtype='bool')
-    cnn = planet.predict.VGG19ConvNeuralNetwork.from_data(images, labels, 4)
+    cnn = planet.predict.Vgg19Cnn.from_data(images, labels, 4)
     test_images = numpy.random.randint(256, size=(num_test, num_rows, num_cols, num_channels), dtype='uint8')
     pred_labels = cnn.predict(test_images)
     assert pred_labels.shape == (num_test, num_labels)
@@ -54,14 +54,46 @@ def test_vgg19_conv_neural_network():
     out_file = tempfile.NamedTemporaryFile()
     cnn.write(out_file.name)
 
-    read_cnn = planet.predict.VGG19ConvNeuralNetwork.from_file(out_file.name)
+    read_cnn = planet.predict.Vgg19Cnn.from_file(out_file.name)
     numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())
 
 
-def test_vgg19_conv_neural_network_train():
+def test_vgg19_cnn_train():
     """ Check that the VGG19 CNN training creates a file with identical weights.
     """
     out_file = tempfile.NamedTemporaryFile()
-    cnn = planet.predict.VGG19ConvNeuralNetwork.train(out_file.name, num_samples=2)
-    read_cnn = planet.predict.VGG19ConvNeuralNetwork.from_file(out_file.name)
+    cnn = planet.predict.Vgg19Cnn.train(out_file.name, num_samples=2)
+    read_cnn = planet.predict.Vgg19Cnn.from_file(out_file.name)
+    numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())
+
+
+def test_resnet50_cnn():
+    """ Check that the ResNet50 CNN is trained and can predict the right shape/class.
+    """
+    num_train = 4
+    num_test = 3
+    num_rows = 224
+    num_cols = 224
+    num_channels = 3
+    num_labels = 2
+    images = numpy.random.randint(256, size=(num_train, num_rows, num_cols, num_channels), dtype='uint8')
+    labels = numpy.random.randint(2, size=(num_train, num_labels), dtype='bool')
+    cnn = planet.predict.ResNet50Cnn.from_data(images, labels, 4)
+    test_images = numpy.random.randint(256, size=(num_test, num_rows, num_cols, num_channels), dtype='uint8')
+    pred_labels = cnn.predict(test_images)
+    assert pred_labels.shape == (num_test, num_labels)
+
+    out_file = tempfile.NamedTemporaryFile()
+    cnn.write(out_file.name)
+
+    read_cnn = planet.predict.ResNet50Cnn.from_file(out_file.name)
+    numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())
+
+
+def test_resnet50_cnn_train():
+    """ Check that the ResNet50 CNN training creates a file with identical weights.
+    """
+    out_file = tempfile.NamedTemporaryFile()
+    cnn = planet.predict.ResNet50Cnn.train(out_file.name, num_samples=2)
+    read_cnn = planet.predict.ResNet50Cnn.from_file(out_file.name)
     numpy.testing.assert_equal(cnn.top.get_weights(), read_cnn.top.get_weights())

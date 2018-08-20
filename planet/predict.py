@@ -89,7 +89,6 @@ def flatten_images(images):
 def score_k_nearest_neighbors(images, labels, ks, num_splits):
     """ Scores k-nearest neighbors with different values of k.
     """
-
     num_samples = images.shape[0]
     num_ks = len(ks)
     scores = numpy.zeros((num_splits, num_ks))
@@ -112,19 +111,17 @@ class KNearestNeighbors:
         self.impl = sklearn.neighbors.KNeighborsClassifier(n_neighbors=k)
         self.impl.fit(flatten_images(images), labels)
 
-
     def predict(self, images):
         """ Predicts labels from observed data.
         """
         return self.impl.predict(flatten_images(images))
 
 
-class VGG19ConvNeuralNetwork(object):
+class Cnn(object):
 
     def __init__(self):
-        self.vgg19 = None
+        self.bottom = None
         self.top = None
-
 
     @classmethod
     def from_data(cls, images, labels, num_hidden, batch_size=128, num_epochs=1):
@@ -134,25 +131,23 @@ class VGG19ConvNeuralNetwork(object):
         assert M == N
         assert (R, C, D) == (224, 224, 3)
 
-        self._init_vgg19()
-        responses = self.vgg19.predict(images)
+        self._init_bottom()
+        responses = self.bottom.predict(images)
 
         self.top = keras.models.Sequential()
-        self.top.add(keras.layers.Flatten(input_shape=(7, 7, 512)))
+        self.top.add(keras.layers.Flatten(input_shape=responses.shape[1:]))
         self.top.add(keras.layers.Dense(num_hidden, activation='relu'))
         self.top.add(keras.layers.Dense(K, activation='sigmoid'))
         self.top.compile(loss='binary_crossentropy', optimizer='sgd', metrics=['accuracy'])
         self.top.fit(responses, labels, batch_size=batch_size, epochs=num_epochs, verbose=2)
         return self
 
-
     @classmethod
     def from_file(cls, file_path):
         self = cls()
-        self._init_vgg19()
+        self._init_bottom()
         self.top = keras.models.load_model(file_path)
         return self
-
 
     @classmethod
     def train(cls, file_path, num_hidden=32, batch_size=128, num_epochs=4, num_samples=None):
@@ -161,18 +156,27 @@ class VGG19ConvNeuralNetwork(object):
         self.write(file_path)
         return self
 
-
-    def _init_vgg19(self):
-        self.vgg19 = keras.applications.vgg19.VGG19(include_top=False)
-
+    def _init_bottom(self):
+        raise NotImplementedError()
 
     def write(self, file_path):
         self.top.save(file_path)
 
-
     def predict(self, images):
-        responses = self.vgg19.predict(images, verbose=1)
+        responses = self.bottom.predict(images, verbose=1)
         return self.top.predict(responses, verbose=1) > 0.5
+
+
+class Vgg19Cnn(Cnn):
+
+    def _init_bottom(self):
+        self.bottom = keras.applications.vgg19.VGG19(include_top=False)
+
+
+class ResNet50Cnn(Cnn):
+
+    def _init_bottom(self):
+        self.bottom = keras.applications.resnet50.ResNet50(include_top=False)
 
 
 def f2_score(pred_labels, true_labels, avg_type):

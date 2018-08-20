@@ -102,3 +102,6 @@ ENV/
 
 # Custom additions
 data
+
+# PyCharm
+.idea
