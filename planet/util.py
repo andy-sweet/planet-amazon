@@ -13,7 +13,7 @@ K : The number of labels.
 """
 
 # Built-in
-import os, csv, zipfile
+import os, csv, zipfile, warnings
 
 # Third party
 import numpy
@@ -137,11 +137,18 @@ def read_images(image_dir, names, image_size=None):
     images = numpy.empty((num_images, image_size[0], image_size[1], 3), dtype=dtype)
     with tqdm.tqdm(total=num_images) as progress:
         for index, name in enumerate(names):
-            image = skimage.io.imread(os.path.join(image_dir, name + '.jpg'))
-            if image_size is None:
-                images[index, :, :, :] = image
+            base_path = os.path.join(image_dir, name)
+            output_file_path = f'{base_path}-{image_size[0]}x{image_size[1]}.jpg'
+            if os.path.exists(output_file_path):
+                images[index, :, :, :] = skimage.io.imread(output_file_path)
             else:
-                images[index, :, :, :] = resize_image(image, image_size)
+                image = skimage.io.imread(f'{base_path}.jpg')
+                if image_size is None:
+                    images[index, :, :, :] = image
+                else:
+                    image_rs = resize_image(image, image_size)
+                    images[index, :, :, :] = image_rs
+                    skimage.io.imsave(output_file_path, image_rs)
             progress.update(1)
 
     return images
@@ -150,6 +157,7 @@ def read_images(image_dir, names, image_size=None):
 def resize_image(image, size):
     """ Resizes 2D image to new 2D size over all channels.
     """
+    warnings.simplefilter('ignore')
     return skimage.transform.resize(image, size, mode='reflect', preserve_range=True).astype(image.dtype)
 
 

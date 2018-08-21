@@ -5,6 +5,7 @@
 import planet.util
 
 # Built-in
+import warnings
 
 # Third party
 import numpy
@@ -124,19 +125,16 @@ class Cnn(object):
         self.top = None
 
     @classmethod
-    def from_data(cls, images, labels, num_hidden, batch_size=128, num_epochs=1):
+    def from_data(cls, images, labels, batch_size=64, num_epochs=3):
         self = cls()
         (N, K) = labels.shape
-        (M, R, C, D) = images.shape
-        assert M == N
-        assert (R, C, D) == (224, 224, 3)
+        assert images.shape[0] == N
 
         self._init_bottom()
         responses = self.bottom.predict(images)
 
         self.top = keras.models.Sequential()
         self.top.add(keras.layers.Flatten(input_shape=responses.shape[1:]))
-        self.top.add(keras.layers.Dense(num_hidden, activation='relu'))
         self.top.add(keras.layers.Dense(K, activation='sigmoid'))
         self.top.compile(loss='binary_crossentropy', optimizer='sgd', metrics=['accuracy'])
         self.top.fit(responses, labels, batch_size=batch_size, epochs=num_epochs, verbose=2)
@@ -150,9 +148,9 @@ class Cnn(object):
         return self
 
     @classmethod
-    def train(cls, file_path, num_hidden=32, batch_size=128, num_epochs=4, num_samples=None):
+    def train(cls, file_path, batch_size=64, num_epochs=3, num_samples=None):
         [images, labels] = planet.util.get_train_data(num_samples=num_samples, image_size=(224, 224))
-        self = cls.from_data(images, labels, num_hidden=num_hidden, batch_size=batch_size, num_epochs=num_epochs)
+        self = cls.from_data(images, labels, batch_size=batch_size, num_epochs=num_epochs)
         self.write(file_path)
         return self
 
@@ -179,9 +177,24 @@ class ResNet50Cnn(Cnn):
         self.bottom = keras.applications.resnet50.ResNet50(include_top=False)
 
 
+def precision_score(pred_labels, true_labels, avg_type):
+    """ Compute the precision.
+    """
+    warnings.simplefilter('ignore')
+    return sklearn.metrics.precision_score(true_labels, pred_labels, average=avg_type)
+
+
+def recall_score(pred_labels, true_labels, avg_type):
+    """ Compute the recall.
+    """
+    warnings.simplefilter('ignore')
+    return sklearn.metrics.recall_score(true_labels, pred_labels, average=avg_type)
+
+
 def f2_score(pred_labels, true_labels, avg_type):
     """ Compute the average F2 score.
     """
+    warnings.simplefilter('ignore')
     return sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=avg_type)
 
 
@@ -189,17 +202,19 @@ def make_scores_plot(pred_labels, true_labels, label_names, classifier):
     """ Computes and plots the scores associated with a classifier.
     """
 
-    recall = sklearn.metrics.recall_score(true_labels, pred_labels, average=None)
-    precision = sklearn.metrics.precision_score(true_labels, pred_labels, average=None)
-    f2 = sklearn.metrics.fbeta_score(true_labels, pred_labels, beta=2, average=None)
+    recall = recall_score(pred_labels, true_labels, None)
+    precision = precision_score(pred_labels, true_labels, None)
+    f2 = f2_score(pred_labels, true_labels, None)
+
     scores = numpy.array([recall, precision, f2])
 
     avg_type = 'micro'
-    recall_avg = sklearn.metrics.recall_score(true_labels, pred_labels, average=avg_type)
-    precision_avg = sklearn.metrics.precision_score(true_labels, pred_labels, average=avg_type)
+    recall_avg = recall_score(pred_labels, true_labels, avg_type)
+    precision_avg = precision_score(pred_labels, true_labels, avg_type)
     f2_avg = f2_score(pred_labels, true_labels, avg_type)
 
-    title = 'Scores for {} Classifier. Recall={:.2f}, Precision={:.2f}, F2={:.2f}'.format(classifier, recall_avg, precision_avg, f2_avg)
+    title = 'Scores for {} Classifier. Recall={:.2f}, Precision={:.2f}, F2={:.2f}'.format(
+            classifier, recall_avg, precision_avg, f2_avg)
     colors = ['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']
     groups = ['recall', 'precision', 'f2']
 

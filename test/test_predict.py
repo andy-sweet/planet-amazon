@@ -46,7 +46,7 @@ def test_vgg19_cnn():
     num_labels = 2
     images = numpy.random.randint(256, size=(num_train, num_rows, num_cols, num_channels), dtype='uint8')
     labels = numpy.random.randint(2, size=(num_train, num_labels), dtype='bool')
-    cnn = planet.predict.Vgg19Cnn.from_data(images, labels, 4)
+    cnn = planet.predict.Vgg19Cnn.from_data(images, labels)
     test_images = numpy.random.randint(256, size=(num_test, num_rows, num_cols, num_channels), dtype='uint8')
     pred_labels = cnn.predict(test_images)
     assert pred_labels.shape == (num_test, num_labels)
@@ -78,7 +78,7 @@ def test_resnet50_cnn():
     num_labels = 2
     images = numpy.random.randint(256, size=(num_train, num_rows, num_cols, num_channels), dtype='uint8')
     labels = numpy.random.randint(2, size=(num_train, num_labels), dtype='bool')
-    cnn = planet.predict.ResNet50Cnn.from_data(images, labels, 4)
+    cnn = planet.predict.ResNet50Cnn.from_data(images, labels)
     test_images = numpy.random.randint(256, size=(num_test, num_rows, num_cols, num_channels), dtype='uint8')
     pred_labels = cnn.predict(test_images)
     assert pred_labels.shape == (num_test, num_labels)
